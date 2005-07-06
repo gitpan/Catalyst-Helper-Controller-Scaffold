@@ -3,7 +3,7 @@ package Catalyst::Helper::Controller::Scaffold;
 use strict;
 use Path::Class;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 NAME
 
@@ -75,8 +75,6 @@ package [% class %];
 use strict;
 use base 'Catalyst::Base';
 
-__PACKAGE__->config( table_class => '[% table_class %]' );
-
 =head1 NAME
 
 [% class %] - Scaffolding Controller Component
@@ -101,8 +99,6 @@ Sets a template.
 
 sub add : Local {
     my ( $self, $c ) = @_;
-    $c->stash->{prefix} = '[% uri %]';
-    $c->stash->{table_class} = $self->{table_class};
     $c->stash->{template} = '[% prefix %]/add.tt';
 }
 
@@ -125,7 +121,7 @@ Destroys a row and forwards to list.
 
 sub destroy : Local {
     my ( $self, $c, $id ) = @_;
-    $self->{table_class}->retrieve($id)->delete;
+    [% table_class %]->retrieve($id)->delete;
     $c->forward('list');
 }
 
@@ -137,8 +133,8 @@ Adds a new row to the table and forwards to list.
 
 sub do_add : Local {
     my ( $self, $c ) = @_;
-    $c->form( optional => [ $self->{table_class}->columns ] );
-    $self->{table_class}->create_from_form( $c->form );
+    $c->form( optional => [ [% table_class %]->columns ] );
+    [% table_class %]->create_from_form( $c->form );
     $c->forward('list');
 }
 
@@ -150,8 +146,8 @@ Edits a row and forwards to edit.
 
 sub do_edit : Local {
     my ( $self, $c, $id ) = @_;
-    $c->form( optional => [ $self->{table_class}->columns ] );
-    $self->{table_class}->retrieve($id)->update_from_form( $c->form );
+    $c->form( optional => [ [% table_class %]->columns ] );
+    [% table_class %]->retrieve($id)->update_from_form( $c->form );
     $c->forward('edit');
 }
 
@@ -163,8 +159,7 @@ Sets a template.
 
 sub edit : Local {
     my ( $self, $c, $id ) = @_;
-    $c->stash->{prefix} = '[% uri %]';
-    $c->stash->{item} = $self->{table_class}->retrieve($id);
+    $c->stash->{item} = [% table_class %]->retrieve($id);
     $c->stash->{template} = '[% prefix %]/edit.tt';
 }
 
@@ -176,8 +171,6 @@ Sets a template.
 
 sub list : Local {
     my ( $self, $c ) = @_;
-    $c->stash->{prefix} = '[% uri %]';
-    $c->stash->{table_class} = $self->{table_class};
     $c->stash->{template} = '[% prefix %]/list.tt';
 }
 
@@ -189,8 +182,7 @@ Fetches a row and sets a template.
 
 sub view : Local {
     my ( $self, $c, $id ) = @_;
-    $c->stash->{prefix} = '[% uri %]';
-    $c->stash->{item} = $self->{table_class}->retrieve($id);
+    $c->stash->{item} = [% table_class %]->retrieve($id);
     $c->stash->{template} = '[% prefix %]/view.tt';
 }
 
@@ -210,8 +202,8 @@ it under the same terms as perl itself.
 1;
 __add__
 [% TAGS [- -] %]
-[% USE table_class = Class(table_class) %]
-<form action="[% base _ prefix _ '/do_add' %]" method="post">
+[% USE table_class = Class('[- table_class -]') %]
+<form action="[% base _ '[- uri -]/do_add' %]" method="post">
     [% FOR column = table_class.columns %]
         [% NEXT IF column == table_class.primary_column %]
         [% column %]<br/>
@@ -220,10 +212,10 @@ __add__
     <input type="submit" value="Add"/>
 <form/>
 <br/>
-<a href="[% base _ prefix _ '/list' %]">List</a>
+<a href="[% base _ '[- uri -]/list' %]">List</a>
 __edit__
 [% TAGS [- -] %]
-<form action="[% base _ prefix _ '/do_edit/' _ item.id %]"
+<form action="[% base _ '[- uri -]/do_edit/' _ item.id %]"
     method="post">
     [% FOR column = item.columns %]
         [% NEXT IF column == item.primary_column %]
@@ -233,10 +225,10 @@ __edit__
     <input type="submit" value="Edit"/>
 <form/>
 <br/>
-<a href="[% base _ prefix _ '/list' %]">List</a>
+<a href="[% base _ '[- uri -]/list' %]">List</a>
 __list__
 [% TAGS [- -] %]
-[% USE table_class = Class(table_class) %]
+[% USE table_class = Class('[- table_class -]') %]
 <table>
     <tr>
     [% primary = table_class.primary_column %]
@@ -253,21 +245,21 @@ __list__
             <td>[% object.$column %]</td>
         [% END %]
             <td>
-                <a href="[% base _ prefix _ '/view/' _ object.$primary %]">
+                <a href="[% base _ '[- uri -]/view/' _ object.$primary %]">
                     View
                 </a>
-                <a href="[% base _ prefix _ '/edit/' _ object.$primary %]">
+                <a href="[% base _ '[- uri -]/edit/' _ object.$primary %]">
                     Edit
 
                 </a>
-                <a href="[% base _ prefix _ '/destroy/' _ object.$primary %]">
+                <a href="[% base _ '[- uri -]/destroy/' _ object.$primary %]">
                     Destroy
                 </a>
             </td>
         </tr>
     [% END %]
 </table>
-<a href="[% base _ prefix _ '/add' %]">Add</a>
+<a href="[% base _ '[- uri -]/add' %]">Add</a>
 __view__
 [% TAGS [- -] %]
 [% FOR column = item.columns %]
@@ -275,4 +267,4 @@ __view__
     <b>[% column %]</b><br/>
     [% item.$column %]<br/><br/>
 [% END %]
-<a href="[% base _ prefix _ '/list' %]">List</a>
+<a href="[% base _ '[- uri -]/list' %]">List</a>
