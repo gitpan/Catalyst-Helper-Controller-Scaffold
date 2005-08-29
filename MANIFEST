@@ -2,7 +2,6 @@ Changes
 lib/Catalyst/Helper/Controller/Scaffold.pm
 Makefile.PL
 MANIFEST			This list of files
-README
 t/01use.t
 t/02pod.t
 t/03podcoverage.t

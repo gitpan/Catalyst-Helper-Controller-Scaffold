@@ -3,7 +3,7 @@ package Catalyst::Helper::Controller::Scaffold;
 use strict;
 use Path::Class;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 NAME
 
@@ -27,9 +27,16 @@ Note that you have to add these lines to your CDBI class...
     use Class::DBI::AsForm;
     use Class::DBI::FromForm;
 
-...and these to your application class, to load the FormValidator plugin.
+for L<Catalyst::Model::CDBI> you can do that  by adding this
 
-    use Catalyst qw/FormValidator/;
+    additional_base_classes => [qw/Class::DBI::AsForm Class::DBI::FromForm/],   
+
+to the component config. Also, change your application class like this:
+
+    use Catalyst qw/-Debug FormValidator/;
+
+Also, note that the scaffolding uses L<Template::Plugin::Class>, so it will
+be a requirement for you application as well.
 
 =head1 METHODS
 
@@ -134,8 +141,19 @@ Adds a new row to the table and forwards to list.
 sub do_add : Local {
     my ( $self, $c ) = @_;
     $c->form( optional => [ [% table_class %]->columns ] );
-    [% table_class %]->create_from_form( $c->form );
-    $c->forward('list');
+    if ($c->form->has_missing) {
+        $c->stash->{message}='You have to fill in all fields. '.
+        'The following are missing: <b>'.
+        join(', ',$c->form->missing()).'</b>';
+    } elsif ($c->form->has_invalid) {
+        $c->stash->{message}='Some fields are correctly filled in. '.
+        'The following are invalid: <b>'.
+	join(', ',$c->form->invalid()).'</b>';
+    } else {
+	[% table_class %]->create_from_form( $c->form );
+    	return $c->forward('list');
+    }
+    $c->forward('add');
 }
 
 =item do_edit
@@ -147,7 +165,18 @@ Edits a row and forwards to edit.
 sub do_edit : Local {
     my ( $self, $c, $id ) = @_;
     $c->form( optional => [ [% table_class %]->columns ] );
-    [% table_class %]->retrieve($id)->update_from_form( $c->form );
+    if ($c->form->has_missing) {
+        $c->stash->{message}='You have to fill in all fields.'.
+        'the following are missing: <b>'.
+        join(', ',$c->form->missing()).'</b>';
+    } elsif ($c->form->has_invalid) {
+        $c->stash->{message}='Some fields are correctly filled in.'.
+        'the following are invalid: <b>'.
+	join(', ',$c->form->invalid()).'</b>';
+    } else {
+	[% table_class %]->retrieve($id)->update_from_form( $c->form );
+	$c->stash->{message}='Updated OK';
+    }
     $c->forward('edit');
 }
 
@@ -203,6 +232,7 @@ it under the same terms as perl itself.
 __add__
 [% TAGS [- -] %]
 [% USE table_class = Class('[- table_class -]') %]
+<p>[%message%]</p>
 <form action="[% base _ '[- uri -]/do_add' %]" method="post">
     [% FOR column = table_class.columns %]
         [% NEXT IF column == table_class.primary_column %]
@@ -215,6 +245,7 @@ __add__
 <a href="[% base _ '[- uri -]/list' %]">List</a>
 __edit__
 [% TAGS [- -] %]
+<p>[%message%]</p>
 <form action="[% base _ '[- uri -]/do_edit/' _ item.id %]"
     method="post">
     [% FOR column = item.columns %]
@@ -245,14 +276,14 @@ __list__
             <td>[% object.$column %]</td>
         [% END %]
             <td>
-                <a href="[% base _ '[- uri -]/view/' _ object.$primary %]">
+                <a href="[% base _ '[- uri -]/view/' _ object.id %]">
                     View
                 </a>
-                <a href="[% base _ '[- uri -]/edit/' _ object.$primary %]">
+                <a href="[% base _ '[- uri -]/edit/' _ object.id %]">
                     Edit
 
                 </a>
-                <a href="[% base _ '[- uri -]/destroy/' _ object.$primary %]">
+                <a href="[% base _ '[- uri -]/destroy/' _ object.id %]">
                     Destroy
                 </a>
             </td>
