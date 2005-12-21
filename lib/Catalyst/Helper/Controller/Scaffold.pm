@@ -3,7 +3,7 @@ package Catalyst::Helper::Controller::Scaffold;
 use strict;
 use Path::Class;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 NAME
 
@@ -20,7 +20,8 @@ Catalyst::Helper::Controller::Scaffold - Helper for Scaffolding
 Helper for Scaffolding.
 
 Templates are TT so you'll need a TT View Component and a forward in
-your end action too.
+your end action too. This can be accomplished with  
+L<Catalyst::Plugin::DefaultEnd>.
 
 Note that you have to add these lines to your CDBI class...
 
@@ -48,7 +49,8 @@ be a requirement for you application as well.
 
 sub mk_compclass {
     my ( $self, $helper, $table_class ) = @_;
-    $helper->{table_class} = $helper->{app} . '::M::' . $table_class;
+    my $type = ($helper->{type} eq 'C' ? 'M' : 'Model');
+    $helper->{table_class} = "$helper->{app}::${type}::$table_class";
     my $file = $helper->{file};
     my $dir = dir( $helper->{base}, 'root', $helper->{prefix} );
     $helper->mk_dir($dir);
@@ -146,7 +148,7 @@ sub do_add : Local {
         'The following are missing: <b>'.
         join(', ',$c->form->missing()).'</b>';
     } elsif ($c->form->has_invalid) {
-        $c->stash->{message}='Some fields are correctly filled in. '.
+        $c->stash->{message}='Some fields are not correctly filled in. '.
         'The following are invalid: <b>'.
 	join(', ',$c->form->invalid()).'</b>';
     } else {
@@ -170,7 +172,7 @@ sub do_edit : Local {
         'the following are missing: <b>'.
         join(', ',$c->form->missing()).'</b>';
     } elsif ($c->form->has_invalid) {
-        $c->stash->{message}='Some fields are correctly filled in.'.
+        $c->stash->{message}='Some fields are not correctly filled in.'.
         'the following are invalid: <b>'.
 	join(', ',$c->form->invalid()).'</b>';
     } else {
@@ -240,7 +242,7 @@ __add__
         [% table_class.to_field(column).as_XML %]<br/>
     [% END %]
     <input type="submit" value="Add"/>
-<form/>
+</form>
 <br/>
 <a href="[% base _ '[- uri -]/list' %]">List</a>
 __edit__
@@ -254,7 +256,7 @@ __edit__
         [% item.to_field(column).as_XML %]<br/>
     [% END %]
     <input type="submit" value="Edit"/>
-<form/>
+</form>
 <br/>
 <a href="[% base _ '[- uri -]/list' %]">List</a>
 __list__
